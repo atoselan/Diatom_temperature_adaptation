@@ -41,7 +41,7 @@ freq1 <- ad1/(ad1+ad2)
 freq2 <- ad2/(ad1+ad2)
 
 # Find density peaks
-myPeaks1 <- freq_peak(freq1, getPOS(biSnpOnly), winsize = winsize, bin_width = bin_width)
+myPeaks1 <- freq_peak(freq1, getPOS(biSnpOnly), winsize = winsize, bin_width = bin_width, lhs = TRUE)
 myPeaks2 <- freq_peak(freq2, getPOS(biSnpOnly), winsize = winsize, bin_width = bin_width, lhs = FALSE)
 
 # Filter out low count peaks
