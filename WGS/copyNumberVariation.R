@@ -239,6 +239,7 @@ ggsave("C://Users/andre/OneDrive - University of East Anglia/EvoExp_notes/FC_pat
 ###
 ### Plot ratio of gains to losses over relative position
 ###
+
 plot_cnv_ratio <- function(data, min_cnv = 0.25, 
                            filename = NULL,
                            width = 6, height =5, res = 300,
