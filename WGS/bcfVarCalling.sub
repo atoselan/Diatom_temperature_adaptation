@@ -1,0 +1,138 @@
+#!/bin/bash
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bva09npu@uea.ac.uk
+#SBATCH -p compute-24-96
+#SBATCH -t 48:00:00
+#SBATCH --mem=8G
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --job-name=filter_bcf
+#SBATCH -o filter_bcf.%j.out
+#SBATCH -e filter_bcf.%j.err
+
+# Snp calling
+. /etc/profile
+module add bcftools/1.15.1
+module add htslib/1.15.1
+module add samtools/1.11
+
+# Set file locations
+genome="/gpfs/data/mock_lab/andrew-temp/reference_genomes/T_pseudonana/Thaps3_chromosomes_assembly_repeatmasked.fasta"
+samFolder="/gpfs/home/bva09npu/scratch/WGS"
+bcfList="/gpfs/home/bva09npu/scratch/WGS/miscFiles/bcfList.txt"
+regFile="/gpfs/home/bva09npu/scratch/WGS/miscFiles/regFile.txt"
+numThread=16
+# Set snp calling parameters
+mapQual=30
+baseQual=30
+varQual=35
+gtQual=30
+minDepth=5
+
+
+# Create bcf list file
+# A list of bcf files to merge
+if [ ! -e ${bcfList} ]; then
+  touch ${bcfList}
+fi
+
+# Loop through list of samples
+while read sample
+do
+  # Get bam file
+  bamFile=`ls ${samFolder}/${sample}/*labelled*.bam`
+
+  # If not already indexed, index
+  if [ ! -e ${bamFile}.bai ]; then
+    samtools index -b ${bamFile}
+  fi
+
+  # Make sure we dont have any ambiguously mapped reads
+  if [ ! -e ${samFolder}/${sample}/${sample}.filtered.bam ]; then
+    # Remove unreliable end alignments
+    if [ ! -e ${samFolder}/${sample}/${sample}.clipped.bam ]; then
+      samtools view \
+        -h ${bamFile} | \
+      perl samclip.pl --ref ${genome} | \
+      samtools view \
+        -b \
+        --threads ${numThread} \
+        -o ${samFolder}/${sample}/${sample}.clipped.bam
+    fi
+    # Filter out secondary alignments
+    samtools view \
+      -h \
+      -q ${mapQual} \
+      -f 2 -F 256 \
+      ${bamFile} | \
+    grep -v "XA:Z" | grep -v "SA:Z" | \
+    samtools view -b -o ${samFolder}/${sample}/${sample}.filtered.bam
+    # Index filtered alignment
+    samtools index -b ${samFolder}/${sample}/${sample}.filtered.bam
+    rm -f ${samFolder}/${sample}/${sample}.clipped.bam
+    bamFile=${samFolder}/${sample}/${sample}.filtered.bam
+  fi
+  # Call variants
+  bcftools mpileup \
+    --output-type u \
+    --threads ${numThread} \
+    --max-depth 1000 \
+    --min-MQ ${mapQual} \
+    --min-BQ ${baseQual} \
+    --platforms ILLUMINA \
+    --annotate FORMAT/DP,FORMAT/AD \
+    --fasta-ref $genome \
+    ${samFolder}/${sample}/${sample}.filtered.bam | \
+  bcftools call \
+    --output-type u \
+    --multiallelic-caller \
+    --threads ${numThread} \
+    --annotate GQ | \
+  bcftools norm \
+    --fasta-ref ${genome} \
+    --output-type u | \
+  bcftools filter --SnpGap 10 \
+    --threads ${numThread} \
+    --exclude "QUAL<${varQual} | FMT/DP<${minDepth} | FMT/GQ<${gtQual} | IDV<5" \
+    --output-type b \
+    --output ${samFolder}/${sample}/${sample}.bcfCall.all.bcf
+
+  # Extract just the variants
+  bcftools view \
+    --with-header \
+    --types snps,indels \
+    --output-type b \
+    --output ${samFolder}/${sample}/${sample}.bcfCall.vars.bcf \
+    ${samFolder}/${sample}/${sample}.bcfCall.all.bcf
+  # Index bcf
+  tabix ${samFolder}/${sample}/${sample}.bcfCall.all.bcf
+
+  # Add finished file name to list for merging and downstream analysis
+  echo ${samFolder}/${sample}/${sample}.bcfCall.all.bcf >> ${bcfList}
+done < miscFiles/sampleList.txt
+
+
+# Finally merge bcf files from all samples
+# Removed this line #--output TP_VCF/evoExp.bcfCall.snps.bcf \
+bcftools merge \
+  --file-list ${bcfList} \
+  --merge both \
+  --output-type u \
+  --threads ${numThread} | \
+bcftools view \
+  --with-header \
+  --types snps,indels \
+  --output-type b | \
+bcftools reheader \
+  --samples miscFiles/tpSampleNames.txt \
+  --output
+  --output TP_VCF/evoExp.bcfCall.vars.bcf
+
+# Index bcf
+tabix TP_VCF/evoExp.bcfCall.vars.bcf
+
+# After merging, delete the all position bcf files
+while read bcf
+do
+  rm -f ${bcf}
+done < ${bcfList}
