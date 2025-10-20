@@ -1,6 +1,7 @@
 # Import libraries
 library(ggplot2)
 library(dplyr)
+library(stringr)
 library(tidyr)
 library(readr)
 
@@ -158,10 +159,10 @@ plotCnv <- function(dataSet, sampleName, myCol, ylabel="", tempLabel=""){
 # Print plot to file
 pdf("C://Users/andre/OneDrive - University of East Anglia/EvoExp_notes/FC_patched_work/Coverage/Summary_figures/FC_cnv_geneCentric_plot_cnv025.pdf",
     width=15,height=6)
-  par(mfrow=c(1,3))
-  plotCnv(low_median[low_median$Ctrl_Median>0,], "T1_4C", "#cccccc", ylabel="T0_4C")
-  plotCnv(high_median[high_median$Ctrl_Median>0,], "T1_8C", "#cccccc", ylabel="T0_4C")
-  plotCnv(high_vs_low_median[high_vs_low_median$Ctrl_Median>0,], "T1_8C", "#cccccc", ylabel="T1_4C")
+par(mfrow=c(1,3))
+plotCnv(low_median[low_median$Ctrl_Median>0,], "T1_4C", "#cccccc", ylabel="T0_4C")
+plotCnv(high_median[high_median$Ctrl_Median>0,], "T1_8C", "#cccccc", ylabel="T0_4C")
+plotCnv(high_vs_low_median[high_vs_low_median$Ctrl_Median>0,], "T1_8C", "#cccccc", ylabel="T1_4C")
 dev.off()
 
 
@@ -206,6 +207,13 @@ gain_data2 <- gain_data2 %>% mutate(Source = "High")
 # Combine them
 combined_gain_data <- bind_rows(gain_data1, gain_data2)
 
+# Abbreviate scaffold names
+# Remove prefix and convert to factor in the desired order
+combined_gain_data <- combined_gain_data %>%
+  mutate(
+    scaffold = str_remove(as.character(scaffold), "^scaffold_"),
+    scaffold = factor(scaffold, levels = str_remove(n75_scaffolds, "^scaffold_"))
+  )
 
 # Define colors and sample labels
 colors <- c(rep(alpha("#abd9e9",0.5),1)) # light blue for gains
@@ -215,7 +223,7 @@ sampleLabels <- c("T1_4C", "T1_8C")
 # Create plot
 p <- ggplot(combined_gain_data, aes(x=Source, y=scaffold)) + 
   geom_point(aes(size=n, fill=Type), alpha=0.75, shape=21) +
-  scale_size_continuous(limits = c(0, 500), range = c(0,15), breaks = c(1,50,100,250,500)) +
+  scale_size_continuous(limits = c(0, 750), range = c(0,15), breaks = c(1,50,100,250,750)) +
   geom_vline(xintercept=1.5, size=1, color="black", linetype="dotted") +
   #geom_vline(xintercept=2, size=1, color="black", linetype="dotted") +
   labs(x="", y="Scaffold", size="Frequency", fill="") +
@@ -232,8 +240,13 @@ p <- ggplot(combined_gain_data, aes(x=Source, y=scaffold)) +
   scale_fill_manual(values = colors , guide = FALSE)
 
 # Save plot to pdf
-ggsave("C://Users/andre/OneDrive - University of East Anglia/EvoExp_notes/FC_patched_work/Coverage/CNV_geneCentric/FC_highVlow_perChrom_gains_025.pdf", width=4, height=8)
-
+ggsave(
+  "C://Users/andre/OneDrive - University of East Anglia/EvoExp_notes/FC_patched_work/Coverage/CNV_geneCentric/FC_highVlow_perChrom_gains_025.png",
+  width = 4,
+  height = 8,
+  dpi = 300,       # high quality
+  units = "in"     # width and height in inches
+)
 
 
 ###
