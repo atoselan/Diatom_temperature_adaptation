@@ -16,7 +16,7 @@ colnames(myDat)[10:ncol(myDat)] <- sub(".*\\.", "", colnames(myDat)[10:ncol(myDa
 # Set sample IDs as rownames
 rownames(myDat) <- myDat[[1]]
 
-# Create palette that matches the breaks
+# Create colour palette for main heatmap
 my_colors <- colorRampPalette(c("white", "#000000"))(10)
 
 # Set up annotation data frame
