@@ -118,19 +118,13 @@ plotCnv <- function(dataSet, sampleName, myCol, ylabel="", tempLabel=""){
   plot(dataSet$Ctrl_Median~dataSet$norm_cov,
        xlim=c(0, 6.5),
        ylim=c(0, 6.5),
-       #ylab=ylabel,
-       #xlab=paste(sampleName),
        axes=FALSE,
        ann=FALSE,
        pch=16,
        col=alpha(myCol, 0.4),
        cex=1.25, cex.lab=1.5)
-  axis(1, at=c(0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5), 
-       c(0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5), 
-       cex.axis=1.5)
-  axis(2, at=c(0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5), 
-       c(0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5), 
-       cex.axis=1.5)
+  axis(1, at = seq(0, 6.5, by = 0.5), labels = seq(0, 6.5, by = 0.5), cex.axis = 1.5)
+  axis(2, at = seq(0, 6.5, by = 0.5), labels = seq(0, 6.5, by = 0.5), cex.axis = 1.5)
   # Add x-axis label
   mtext(sampleName, side=1, line=3, cex=1)
   # Add y-axis label
