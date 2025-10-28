@@ -318,21 +318,18 @@ plot_cnv_ratio <- function(data, min_cnv = 0.25,
 # Plot low temperature T1 vs T0
 result <- plot_cnv_ratio(
   data = low_median,
-  min_cnv = 0.2,
   color = "#1f78b4",
   main_title = "T1_4C vs T0_4C"
 )
 # Plot high temperature T1 vs T0
 result <- plot_cnv_ratio(
   data = high_median,
-  min_cnv = 0.2,
   color = "#e31a1c",
   main_title = "T1_8C vs T0_4C"
 )
 # Plot high vs low T1s
 result <- plot_cnv_ratio(
   data = high_vs_low_median,
-  min_cnv = 0.2,
   color = "#ff7f00",
   main_title = "T1_8C vs T1_4C"
 )
